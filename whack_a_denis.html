@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Whack‑A‑Denis 🐱</title>
+<style>
+  :root{ --bg:#ffeaf2;--panel:#fff3f7;--hole:#f7faff;--hole-ring:#e9cfe0;--accent:#b388ff;--accent2:#ffb3c1;--text:#37424a;--success:#7bd389;--danger:#ff7b7b;--rowTop:26%;--rowBot:74%; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 800px at 50% -10%,#fff 0%,var(--bg) 60%);color:var(--text);display:flex;align-items:center;justify-content:center}
+  .wrap{width:min(960px,100%);padding:16px}
+  .hud{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:12px}
+  .title{font-weight:800;letter-spacing:.5px}
+  .btn{appearance:none;border:0;padding:10px 14px;border-radius:16px;background:linear-gradient(180deg,var(--accent),#9f78ff);color:#fff;font-weight:700;box-shadow:0 8px 22px rgba(179,136,255,.35);cursor:pointer}
+  .btn.secondary{background:linear-gradient(180deg,#ff9eb1,var(--accent2));box-shadow:0 8px 22px rgba(255,158,177,.35)}
+  .panel{background:var(--panel);border:1px solid rgba(0,0,0,.06);border-radius:24px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  .grid{position:relative;aspect-ratio:16/10;max-height:70vh;width:100%;margin:0 auto;background:radial-gradient(circle at 50% 0%,#fff 0%,#fff5f9 35%,#ffe9f3 100%);border-radius:20px;overflow:hidden;touch-action:manipulation}
+  .row{position:absolute;left:50%;display:grid;gap:clamp(8px,2vw,16px);transform:translate(-50%,-50%);justify-items:center}
+  .row.top{top:var(--rowTop);grid-template-columns:repeat(5,1fr);width:min(90%,760px)}
+  .row.mid{top:calc((var(--rowTop) + var(--rowBot))/2);grid-template-columns:repeat(4,1fr);width:min(80%,620px)}
+  .row.bottom{top:var(--rowBot);grid-template-columns:repeat(5,1fr);width:min(90%,760px)}
+  .row.mid .hole{margin-left:calc(100%/8);margin-right:calc(100%/8)}
+  .hole{position:relative;height:clamp(70px,10vw,110px);border-radius:999px;background:radial-gradient(120% 80% at 50% 35%, #ffffff 0 40%, var(--hole) 60% 100%);border:3px solid var(--hole-ring);box-shadow:inset 0 14px 26px rgba(0,0,0,.10),inset 0 -12px 18px rgba(0,0,0,.05);overflow:hidden}
+  .hole:before{content:"";position:absolute;inset:8% 6% 42% 6%;border-radius:999px;background:radial-gradient(120% 90% at 50% 20%,rgba(255,255,255,.9),rgba(255,255,255,0));pointer-events:none;}
+  .hole:after{content:"";position:absolute;inset:48% 8% 8% 8%;border-radius:999px;background:radial-gradient(120% 90% at 50% 80%,rgba(0,0,0,.18),rgba(0,0,0,0));pointer-events:none;}
+  /* Top & bottom holes are perfect circles */
+  .row.top .hole,.row.mid .hole,.row.bottom .hole{height:auto;aspect-ratio:1/1;width:clamp(90px,10vw,110px)}
+  .hole .rim{position:absolute;inset:-2px;pointer-events:none;border-radius:999px;box-shadow:inset 0 -14px 18px rgba(0,0,0,.12)}
+  .mole{position:absolute;bottom:-4px;left:50%;transform:translate(-50%,100%);width:80%;display:flex;flex-direction:column;align-items:center}
+  .mole img{width:100%;height:auto;filter:drop-shadow(0 10px 30px rgba(0,0,0,.25));user-select:none;-webkit-user-drag:none}
+  .mole .name{display:none}
+  .bubble{position:absolute;background:#fff;border:2px solid var(--accent);border-radius:14px;padding:6px 8px;font-size:clamp(10px,2.5vw,14px);box-shadow:0 6px 16px rgba(0,0,0,.08);white-space:nowrap;pointer-events:none}
+  .bubble.global{position:absolute;z-index:50}
+  .bubble:after{content:"";position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--accent)}
+  .nameTag{position:absolute;z-index:55;background:rgba(0,0,0,.6);color:#fff;font-weight:800;font-size:clamp(10px,2.3vw,14px);padding:2px 8px;border-radius:999px;letter-spacing:.5px;pointer-events:none;transform:translate(-50%,0)}
+  .meters{display:flex;gap:12px;align-items:center;justify-content:center;font-weight:800}
+  .pill{background:#fff;border:1px solid rgba(0,0,0,.06);padding:6px 10px;border-radius:999px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+  .letters{position:absolute;top:4%;left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none;z-index:40}
+  .slot{width:clamp(16px,2.6vw,26px);height:clamp(22px,3.4vw,34px);border-bottom:3px dashed rgba(0,0,0,.12);display:grid;place-items:center;font-weight:900}
+  .fly{position:absolute; left:0; top:0;font-weight:900;font-size:clamp(16px,4.5vw,40px);opacity:0;z-index:45}
+  .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:60;text-align:center}
+  .overlay.show{display:flex}
+  .overlay .msg{padding:8px 16px;border-radius:16px;font-size:clamp(20px,5vw,42px);font-weight:900;color:#fff;text-shadow:0 6px 20px rgba(0,0,0,.35)}
+  .overlay .actions{display:flex;gap:10px}
+  .storm{background:radial-gradient(100% 120% at 50% -10%,#475466,#1e2630 70%)}
+  .storm .msg{background:linear-gradient(180deg,#ff7b7b,#db3131)}
+  .fireworks{background:radial-gradient(100% 120% at 50% -10%,#2d284a,#111223 70%)}
+  .fireworks .msg{background:linear-gradient(180deg,#7bd389,#109867)}
+  .rainbowText{background:conic-gradient(#ff0000,#ffa500,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);-webkit-background-clip:text;background-clip:text;color:transparent;animation:spinHue 2s linear infinite}
+  @keyframes spinHue{to{filter:hue-rotate(360deg)}}
+  canvas.fw{position:absolute;inset:0;pointer-events:none}
+  .cloud{position:absolute;top:10%;left:-20%;width:60%;height:30%;background:rgba(255,255,255,.08);filter:blur(12px);border-radius:50%;animation:cloud 12s linear infinite}
+  .cloud.c2{top:25%;left:-10%;width:70%;animation-duration:18s;opacity:.5}
+  @keyframes cloud{from{transform:translateX(0)}to{transform:translateX(140%)}}
+  .lightning{position:absolute;inset:0;pointer-events:none}
+  .lightning.flash{background:rgba(255,255,255,.8);animation:flash .2s ease-out}
+  @keyframes flash{from{opacity:1}to{opacity:0}}
+  .rain{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  .drop{position:absolute;width:2px;height:14px;background:linear-gradient(#a7b1c1,transparent);opacity:.7;animation:fall 1s linear infinite}
+  @keyframes fall{from{transform:translateY(-20px)}to{transform:translateY(110vh)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div class="title">🐱 Whack‑A‑Denis</div>
+    <div class="meters">
+      <div class="pill">⏱️ <span id="time">80</span>s</div>
+      <div class="pill">🎯 Score: <span id="score">0</span></div>
+    </div>
+    <div style="text-align:right; display:flex; gap:8px; justify-content:flex-end">
+      <button class="btn" id="btnStart">Bắt đầu</button>
+      <button class="btn secondary" id="btnReset">Chơi lại</button>
+    </div>
+  </div>
+
+  <div class="panel grid" id="grid">
+    <div class="letters" id="letters"></div>
+    <div class="row top"></div>
+    <div class="row mid"></div>
+    <div class="row bottom"></div>
+
+    <div class="overlay fireworks" id="olWin">
+      <canvas class="fw" id="fw"></canvas>
+      <div class="msg rainbowText">ME TOOOO!!!!</div>
+      <div class="actions"><button class="btn secondary" id="btnAgainWin">Chơi lại</button></div>
+    </div>
+
+    <div class="overlay storm" id="olLose">
+      <div class="cloud"></div><div class="cloud c2"></div>
+      <div class="rain" id="rain"></div>
+      <div class="lightning" id="lightning"></div>
+      <div class="msg">YOU DON'T LOVE ME :((</div>
+      <div class="actions"><button class="btn secondary" id="btnAgainLose">Chơi lại</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+  const ROWS={top:5, mid:4, bottom:5};
+  // === Tunables ===
+  const TOTAL_TIME = 60;                 // ⏱️ Tổng thời gian (giây). Đổi 60 để chơi 60s
+  const POPS_PER_MIN = 36;               // 🐱 Số lần mèo thò/thu mỗi phút. Tăng để khó hơn
+  const SHOW_TIME_MIN = 0.35;             // ⏳ Mèo ở trên tối thiểu (giây). Giảm để khó hơn
+  const SHOW_TIME_MAX = 0.8;             // ⏳ Mèo ở trên tối đa (giây). Giảm để khó hơn
+  const POP_UP_MS = 140;                 // ⏫ Thời gian trồi lên (ms). Giảm để nhanh hơn
+  const POP_DOWN_MS = 140;               // ⏬ Thời gian thụt xuống (ms). Giảm để nhanh hơn
+  const TOTAL_POPS = Math.round((TOTAL_TIME/60)*POPS_PER_MIN);
+  const BUBBLES=["Lêu lêu Cherry","Love me?","No love me?","Cherry zó tu","Hí hí","Pu sỳ non Cherry","Pạch pạch"];
+  const LOVE_WORD="I LOVE DENIS"; const POINTS_PER_LETTER=2;
+  const DEFAULT_IMG_URL = "mochi-png.png"; // ảnh mèo đặt cùng thư mục
+
+  const grid=document.getElementById('grid');
+  const rowTop=grid.querySelector('.row.top');
+  const rowMid=grid.querySelector('.row.mid');
+  const rowBot=grid.querySelector('.row.bottom');
+  const timeEl=document.getElementById('time'); timeEl.textContent=TOTAL_TIME;
+  const scoreEl=document.getElementById('score');
+  const btnStart=document.getElementById('btnStart');
+  const olWin=document.getElementById('olWin');
+  const olLose=document.getElementById('olLose');
+  const btnAgainWin=document.getElementById('btnAgainWin');
+  const btnAgainLose=document.getElementById('btnAgainLose');
+  const lightning=document.getElementById('lightning');
+  const lettersEl=document.getElementById('letters');
+  const rainEl=document.getElementById('rain');
+
+  let score=0,timeLeft=TOTAL_TIME,running=false,popPlan=[],popIndex=0,timerId=null,tickId=null;
+  let nextLetterIndex=0; const holes=[]; const slots=[]; const nameTags=new Map();
+
+  function makeHole(i){
+    const el=document.createElement('div'); el.className='hole'; el.dataset.index=i;
+    const rim=document.createElement('div'); rim.className='rim';
+    const mole=document.createElement('div'); mole.className='mole';
+    const name=document.createElement('div'); name.className='name'; name.textContent='Denis';
+    const img=document.createElement('img'); img.alt='Denis'; img.src=DEFAULT_IMG_URL;
+    mole.appendChild(name); mole.appendChild(img); el.appendChild(mole); el.appendChild(rim);
+    el.addEventListener('pointerdown', onHit, {passive:false});
+    return {el,mole,img,up:false,cooldown:false,bubbleEl:null};
+  }
+  let idx=0;
+  for(let i=0;i<ROWS.top;i++){ const h=makeHole(idx++); holes.push(h); rowTop.appendChild(h.el);}
+  for(let m=0;m<ROWS.mid;m++){ const h=makeHole(idx++); holes.push(h); rowMid.appendChild(h.el);}
+  for(let j=0;j<ROWS.bottom;j++){ const h=makeHole(idx++); holes.push(h); rowBot.appendChild(h.el);} 
+
+  function buildSlots(){ lettersEl.innerHTML=''; slots.length=0; for(let ch of LOVE_WORD){ const s=document.createElement('div'); s.className='slot'; s.textContent= ch===' ' ? ' ' : ''; lettersEl.appendChild(s); slots.push(s);} }
+  buildSlots();
+
+  function planPops(){ popPlan.length=0; const base=(TOTAL_TIME/TOTAL_POPS); let t=0; for(let i=0;i<TOTAL_POPS;i++){ const jitter=(Math.random()*0.9-0.45); t+=Math.max(1.2,base+jitter); const holeIndex=Math.floor(Math.random()*holes.length); const showTime = SHOW_TIME_MIN + Math.random()*(SHOW_TIME_MAX - SHOW_TIME_MIN); popPlan.push({at:t,hole:holeIndex,dur:showTime}); } }
+
+  function start(){ reset(); running=true; timeLeft=TOTAL_TIME; score=0; scoreEl.textContent=score; timeEl.textContent=timeLeft; planPops(); popIndex=0; btnStart.disabled=true;
+    timerId=setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent=timeLeft; if(timeLeft<=0){ end(false);} },1000);
+    const startAt=performance.now()/1000; function tick(){ if(!running) return; const now=performance.now()/1000-startAt; while(popIndex<popPlan.length && popPlan[popIndex].at<=now){ const p=popPlan[popIndex++]; showMole(p.hole,p.dur);} tickId=requestAnimationFrame(tick);} tickId=requestAnimationFrame(tick); }
+
+  function reset(){ clearInterval(timerId); cancelAnimationFrame(tickId); holes.forEach(h=>{h.mole.getAnimations().forEach(a=>a.cancel()); h.mole.style.transform='translate(-50%,100%)'; hideBubble(h); hideName(h); h.up=false; h.cooldown=false;}); score=0; nextLetterIndex=0; buildSlots(); olWin.classList.remove('show'); olLose.classList.remove('show'); btnStart.disabled=false; }
+
+  function end(won){ running=false; clearInterval(timerId); cancelAnimationFrame(tickId); if(won){ olWin.classList.add('show'); showFireworksBackground(); } else { stormLoop(); olLose.classList.add('show'); } }
+
+  function showMole(index,dur){ const h=holes[index]; if(!h||h.up||h.cooldown) return; h.up=true; h.cooldown=true; h.mole.getAnimations().forEach(a=>a.cancel()); h.mole.style.transition=`transform ${POP_UP_MS}ms ease-out`; h.mole.style.transform='translate(-50%,0%)'; showBubble(h); showName(h);
+    setTimeout(()=>{ if(h.up){ hideBubble(h); hideName(h); h.mole.style.transition=`transform ${POP_DOWN_MS}ms ease-in`; h.mole.style.transform='translate(-50%,100%)'; setTimeout(()=>{h.up=false; setTimeout(()=>h.cooldown=false,120)},180);} }, dur*1000);
+  }
+
+  function onHit(e){ if(!running) return; e.preventDefault(); const idx=Number(this.dataset.index); const h=holes[idx]; if(h&&h.up){ h.up=false; h.cooldown=true; fireworksBurstAt(h.el); hideBubble(h); hideName(h);
+      const anim=h.mole.animate([{transform:'translate(-50%,0%) scale(1)'},{transform:'translate(-50%,-10%) scale(1.1)',offset:.5},{transform:'translate(-50%,20%) scale(0)'}],{duration:260,easing:'cubic-bezier(.2,.9,.2,1)',fill:'forwards'});
+      anim.onfinish=()=>{ anim.cancel(); h.mole.style.transform='translate(-50%,100%)'; h.cooldown=false; };
+      score++; scoreEl.textContent=score; dropLetterIfAny(h.el); }
+  }
+
+  function showBubble(h){ hideBubble(h); const b=document.createElement('div'); b.className='bubble global'; b.textContent=BUBBLES[Math.floor(Math.random()*BUBBLES.length)]; grid.appendChild(b); positionBubbleOverHole(b,h.el); h.bubbleEl=b; }
+  function hideBubble(h){ if(h.bubbleEl){ h.bubbleEl.remove(); h.bubbleEl=null; } }
+  function positionBubbleOverHole(b, holeEl){ const r=holeEl.getBoundingClientRect(); const g=grid.getBoundingClientRect(); const cx=r.left-g.left + r.width/2; const cy=r.top-g.top - 8; b.style.left=(cx - b.offsetWidth/2)+"px"; b.style.top=(cy - 30)+"px"; }
+
+  function showName(h){ hideName(h); const n=document.createElement('div'); n.className='nameTag'; n.textContent='Denis'; grid.appendChild(n); nameTags.set(h,n); positionNameOverHole(n,h.el); }
+  function hideName(h){ const n=nameTags.get(h); if(n){ n.remove(); nameTags.delete(h);} }
+  function positionNameOverHole(n, holeEl){
+    const r = holeEl.getBoundingClientRect();
+    const g = grid.getBoundingClientRect();
+    const cx = r.left - g.left + r.width/2;
+    const by = r.bottom - g.top; // place tag just BELOW the hole so it won't cover the head
+    n.style.left = cx + "px";
+    n.style.top  = (by + 6) + "px";
+  }
+  new ResizeObserver(()=>{ holes.forEach(h=>{ if(h.bubbleEl) positionBubbleOverHole(h.bubbleEl, h.el); const n=nameTags.get(h); if(n) positionNameOverHole(n, h.el); }); }).observe(grid);
+
+  // --- FIXED: letters fly from the hit hole to the exact target slot (I->I, L->L, ...) ---
+  function dropLetterIfAny(srcEl){
+    if (score % POINTS_PER_LETTER !== 0) return;
+
+    // Skip and auto-fill spaces so they don't consume a trigger
+    while (nextLetterIndex < LOVE_WORD.length && LOVE_WORD[nextLetterIndex] === ' '){
+      const s = slots[nextLetterIndex];
+      s.textContent = ' ';
+      nextLetterIndex++;
+    }
+    if (nextLetterIndex >= LOVE_WORD.length) { end(true); return; }
+
+    const ch = LOVE_WORD[nextLetterIndex];
+    const fly = document.createElement('div');
+    fly.className = 'fly';
+    fly.textContent = ch;
+    grid.appendChild(fly);
+
+    const gRect = grid.getBoundingClientRect();
+    const sRect = srcEl.getBoundingClientRect();
+    const tRect = slots[nextLetterIndex].getBoundingClientRect();
+
+    const sx = sRect.left - gRect.left + sRect.width/2;
+    const sy = sRect.top - gRect.top + sRect.height*0.15; // start slightly inside the hole
+    const tx = tRect.left - gRect.left + tRect.width/2;
+    const ty = tRect.top - gRect.top + tRect.height/2;
+
+    const anim = fly.animate([
+      { transform: `translate(${sx}px, ${sy}px) scale(1.8)`, opacity: 1 },
+      { transform: `translate(${tx}px, ${ty}px) scale(1)`, opacity: 1 }
+    ], { duration: 850, easing: 'cubic-bezier(.2,.9,.2,1)', fill: 'forwards' });
+
+    anim.onfinish = () => {
+      slots[nextLetterIndex].textContent = ch;
+      fly.remove();
+      nextLetterIndex++;
+      if (nextLetterIndex >= LOVE_WORD.length) { end(true); }
+    };
+  }
+
+  // --- Effects ---
+  function fireworksBurstAt(holeEl){ const rect=holeEl.getBoundingClientRect(); const gRect=grid.getBoundingClientRect(); const cx=rect.left-gRect.left+rect.width/2; const cy=rect.top-gRect.top; const canvas=document.createElement('canvas'); canvas.width=grid.clientWidth; canvas.height=grid.clientHeight; canvas.style.position='absolute'; canvas.style.inset='0'; canvas.style.pointerEvents='none'; grid.appendChild(canvas); const ctx=canvas.getContext('2d'); const parts=[]; const n=60+Math.random()*40; for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2; parts.push({x:cx,y:cy,vx:Math.cos(a)*(1+Math.random()*3),vy:Math.sin(a)*(1+Math.random()*3)-1,life:40+Math.random()*20}); }
+    (function loop(){ ctx.clearRect(0,0,canvas.width,canvas.height); parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.life--; ctx.globalAlpha=Math.max(0,p.life/60); ctx.fillStyle='white'; ctx.fillRect(p.x,p.y,2,2); }); for(let i=parts.length-1;i>=0;i--) if(parts[i].life<=0) parts.splice(i,1); if(parts.length>0) requestAnimationFrame(loop); else canvas.remove(); })(); }
+
+  function showFireworksBackground(){ const canvas=document.getElementById('fw'); const ctx=canvas.getContext('2d'); let w,h; function resize(){ w=canvas.width=grid.clientWidth; h=canvas.height=grid.clientHeight; } resize(); new ResizeObserver(resize).observe(grid); const sparks=[]; function boom(x,y){ const n=80+Math.random()*80; for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2; sparks.push({x,y,vx:Math.cos(a)*(1+Math.random()*3),vy:Math.sin(a)*(1+Math.random()*3),life:80+Math.random()*40}); } }
+    let t=0; (function loop(){ if(!olWin.classList.contains('show')) return; ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,w,h); if(t%25===0) boom(Math.random()*w, 80+Math.random()*(h-160)); sparks.forEach(s=>{ s.x+=s.vx; s.y+=s.vy; s.vy+=0.02; s.life--; ctx.globalAlpha=Math.max(0,s.life/120); ctx.fillStyle='white'; ctx.fillRect(s.x,s.y,2,2); }); for(let i=sparks.length-1;i>=0;i--) if(sparks[i].life<=0) sparks.splice(i,1); t++; requestAnimationFrame(loop); })(); }
+
+  function stormLoop(){ rainEl.innerHTML=''; const drops=140; const w=grid.clientWidth; const h=grid.clientHeight; for(let i=0;i<drops;i++){ const d=document.createElement('div'); d.className='drop'; d.style.left=Math.random()*w+'px'; d.style.top=-(Math.random()*h)+'px'; d.style.animationDuration=(0.6+Math.random()*0.9)+'s'; d.style.opacity=(0.3+Math.random()*0.7); rainEl.appendChild(d); }
+    (function flash(){ if(!olLose.classList.contains('show')) return; lightning.classList.add('flash'); setTimeout(()=>lightning.classList.remove('flash'),200); setTimeout(flash,1200+Math.random()*1800); })(); }
+
+  // --- Tiny test harness (runs once in console) ---
+  (function runTests(){
+    const log=(name,ok)=>console.log(ok?'✅ PASS':'❌ FAIL', name);
+    const nonSpaceLen = [...LOVE_WORD].filter(c=>c!==' ').length;
+    log('Non-space length computed', nonSpaceLen === 10);
+    log('Letters slots length matches LOVE_WORD', document.querySelectorAll('.slot').length === LOVE_WORD.length);
+    log('Points per letter = 2', POINTS_PER_LETTER === 2);
+    // Spaces are skipped logic
+    const idxOfSpace = LOVE_WORD.indexOf(' ');
+    log('LOVE_WORD contains spaces', idxOfSpace > -1);
+  })();
+
+  btnStart.addEventListener('click',start);
+  document.getElementById('btnReset').addEventListener('click',()=>{reset()});
+  btnAgainWin.addEventListener('click',()=>{reset()});
+  btnAgainLose.addEventListener('click',()=>{reset()});
+})();
+</script>
+</body>
+</html>
